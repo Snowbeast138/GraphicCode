@@ -380,6 +380,37 @@ namespace GraphicCode
                             });
                 }
             }
+
+            if (EsNoche() && !estaLloviendo)
+            {
+                // Probabilidad de aparición (aprox 2% por frame)
+                if (rng.Next(100) < 2)
+                {
+                    float velX = (float)(rng.NextDouble() * 12 + 8); // Movimiento rápido horizontal
+                    float velY = (float)(rng.NextDouble() * 4 + 2); // Caída leve
+
+                    estrellasFugaces
+                        .Add(new EstrellaFugace {
+                            Posicion =
+                                new PointF(rng.Next(0, this.Width / 2),
+                                    rng.Next(0, 300)),
+                            Velocidad = new PointF(velX, velY),
+                            VidaMax = rng.Next(15, 40),
+                            Vida = 0
+                        });
+                }
+            }
+
+            for (int i = estrellasFugaces.Count - 1; i >= 0; i--)
+            {
+                var ef = estrellasFugaces[i];
+                ef.Posicion.X += ef.Velocidad.X;
+                ef.Posicion.Y += ef.Velocidad.Y;
+                ef.Vida++;
+
+                if (ef.Vida >= ef.VidaMax) estrellasFugaces.RemoveAt(i);
+            }
+
             for (int i = ondas.Count - 1; i >= 0; i--)
             {
                 ondas[i].Radio += 2.0f;
@@ -1146,17 +1177,63 @@ namespace GraphicCode
         {
             foreach (var l in luciernagas)
             {
-                int b = (int)(Math.Abs(Math.Sin(l.FaseBrillo)) * 255);
-                if (b < 60) continue;
-                using (GraphicsPath gp = new GraphicsPath())
+                // Calculamos el brillo pulsante (0 a 255)
+                int intensidad = (int)(Math.Abs(Math.Sin(l.FaseBrillo)) * 255);
+                if (intensidad < 50) continue; // Si brilla muy poco, no la dibujamos
+
+                // 1. Dibujar la "Estela" de movimiento (opcional, da mucha fluidez)
+                using (
+                    Pen pEstela =
+                        new Pen(Color.FromArgb(intensidad / 4, Color.Yellow), 2)
+                )
                 {
-                    gp.AddEllipse(l.Posicion.X - 5, l.Posicion.Y - 5, 10, 10);
-                    using (PathGradientBrush pgb = new PathGradientBrush(gp))
-                    {
-                        pgb.CenterColor = Color.FromArgb(b, Color.Yellow);
-                        pgb.SurroundColors = new Color[] { Color.Transparent };
-                        g.FillPath (pgb, gp);
-                    }
+                    // Dibujamos una pequeña línea hacia atrás basada en su dirección
+                    g
+                        .DrawLine(pEstela,
+                        l.Posicion.X,
+                        l.Posicion.Y,
+                        l.Posicion.X - l.Direccion.X * 3,
+                        l.Posicion.Y - l.Direccion.Y * 3);
+                }
+
+                // 2. Dibujar el Resplandor Externo (Aura suave)
+                float radioAura = 8 + (intensidad / 50f); // El aura crece con el brillo
+                DibujarBrilloRadial(g,
+                l.Posicion,
+                radioAura,
+                Color.FromArgb(intensidad / 3, Color.Gold),
+                Color.Transparent);
+
+                // 3. Dibujar el Núcleo (El punto más brillante)
+                float radioNucleo = 2.5f;
+                DibujarBrilloRadial(g,
+                l.Posicion,
+                radioNucleo,
+                Color.FromArgb(intensidad, Color.White),
+                Color.FromArgb(intensidad, Color.Yellow));
+            }
+        }
+
+        private void DibujarBrilloRadial(
+            Graphics g,
+            PointF centro,
+            float radio,
+            Color colorCentro,
+            Color colorBorde
+        )
+        {
+            using (GraphicsPath path = new GraphicsPath())
+            {
+                path
+                    .AddEllipse(centro.X - radio,
+                    centro.Y - radio,
+                    radio * 2,
+                    radio * 2);
+                using (PathGradientBrush pgb = new PathGradientBrush(path))
+                {
+                    pgb.CenterColor = colorCentro;
+                    pgb.SurroundColors = new Color[] { colorBorde };
+                    g.FillPath (pgb, path);
                 }
             }
         }
@@ -1174,14 +1251,43 @@ namespace GraphicCode
         {
             foreach (var ef in estrellasFugaces)
             {
-                int a = (int)((ef.Vida / (float) ef.VidaMax) * 255);
-                using (Pen p = new Pen(Color.FromArgb(a, Color.White), 2))
-                    g
-                        .DrawLine(p,
-                        ef.Posicion.X,
-                        ef.Posicion.Y,
-                        ef.Posicion.X - ef.Velocidad.X * 2,
-                        ef.Posicion.Y - ef.Velocidad.Y * 2);
+                // Calculamos la opacidad: se desvanece al final de su vida
+                float progreso = (float) ef.Vida / ef.VidaMax;
+                int alpha = (int)((1.0f - progreso) * 255);
+
+                if (alpha <= 0) continue;
+
+                // Definimos el punto de inicio (cabeza) y fin (cola)
+                PointF cabeza = ef.Posicion;
+                PointF cola =
+                    new PointF(cabeza.X - ef.Velocidad.X * 3,
+                        cabeza.Y - ef.Velocidad.Y * 3);
+
+                // 1. Dibujar la estela con degradado
+                using (
+                    LinearGradientBrush lgb =
+                        new LinearGradientBrush(cabeza,
+                            cola,
+                            Color.FromArgb(alpha, Color.White),
+                            Color.FromArgb(0, Color.Transparent))
+                )
+                {
+                    using (Pen pEstela = new Pen(lgb, 2))
+                    {
+                        pEstela.StartCap = LineCap.Round;
+                        pEstela.EndCap = LineCap.Flat;
+                        g.DrawLine (pEstela, cabeza, cola);
+                    }
+                }
+
+                // 2. Dibujar un núcleo brillante (punto de luz)
+                using (
+                    SolidBrush brillo =
+                        new SolidBrush(Color.FromArgb(alpha, Color.White))
+                )
+                {
+                    g.FillEllipse(brillo, cabeza.X - 2, cabeza.Y - 2, 4, 4);
+                }
             }
         }
 
