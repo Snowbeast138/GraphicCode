@@ -846,34 +846,96 @@ namespace GraphicCode
 
         private void DibujarGranero3D(Graphics g)
         {
-            Point[] f =
+            // --- Configuración de Colores ---
+            Color colorPared = Color.FromArgb(180, 40, 40); // Rojo granero rústico
+            Color colorSombraPared = Color.FromArgb(120, 30, 30); // Rojo oscuro para el lateral
+            Color colorTecho = Color.FromArgb(60, 60, 70); // Gris pizarra
+            Color colorMadera = Color.FromArgb(80, 50, 30); // Color para marcos y detalles
+
+            // 1. Pared Frontal (con textura de tablones)
+            Rectangle rectFrontal = new Rectangle(600, 400, 120, 120);
+            using (SolidBrush bPared = new SolidBrush(colorPared))
             {
-                new Point(600, 400),
-                new Point(720, 400),
-                new Point(720, 520),
-                new Point(600, 520)
-            };
-            Point[] l =
+                g.FillRectangle (bPared, rectFrontal);
+            }
+
+            // Dibujar líneas de tablones verticales para dar realismo
+            using (Pen pTablon = new Pen(Color.FromArgb(50, Color.Black), 1))
+            {
+                for (int x = 600; x <= 720; x += 15)
+                {
+                    g.DrawLine(pTablon, x, 400, x, 520);
+                }
+            }
+
+            // 2. Pared Lateral (Perspectiva y Sombra)
+            Point[] paredLateral =
             {
                 new Point(720, 400),
                 new Point(760, 370),
                 new Point(760, 490),
                 new Point(720, 520)
             };
-            Point[] tF =
+            using (SolidBrush bSombra = new SolidBrush(colorSombraPared))
+            {
+                g.FillPolygon (bSombra, paredLateral);
+            }
+
+            // 3. Techo Detallado (Frontal y Lateral)
+            Point[] techoFrontal =
             { new Point(600, 400), new Point(720, 400), new Point(660, 330) };
-            Point[] tL =
+            Point[] techoLateral =
             {
                 new Point(720, 400),
                 new Point(760, 370),
                 new Point(700, 300),
                 new Point(660, 330)
             };
-            g.FillPolygon(Brushes.Firebrick, f);
-            g.FillPolygon(Brushes.Maroon, l);
-            g.FillPolygon(Brushes.IndianRed, tF);
-            g.FillPolygon(Brushes.DarkRed, tL);
-            g.FillRectangle(Brushes.Black, 645, 465, 30, 55);
+
+            using (SolidBrush bTecho = new SolidBrush(colorTecho))
+            {
+                g.FillPolygon (bTecho, techoFrontal);
+
+                // Sombreado del techo lateral (usando el color corregido)
+                using (
+                    SolidBrush bTechoSombra =
+                        new SolidBrush(Color.FromArgb(colorTecho.A, 40, 40, 50))
+                )
+                {
+                    g.FillPolygon (bTechoSombra, techoLateral);
+                }
+            }
+
+            // 4. Puerta con Marco y Diseño en "X"
+            Rectangle rectPuerta = new Rectangle(640, 455, 40, 65);
+            g.FillRectangle(Brushes.Black, rectPuerta); // Fondo oscuro del interior
+
+            using (Pen pMarco = new Pen(colorMadera, 4))
+            {
+                g.DrawRectangle (pMarco, rectPuerta);
+
+                // Travesaños de madera en X
+                g.DrawLine(pMarco, 640, 455, 680, 520);
+                g.DrawLine(pMarco, 680, 455, 640, 520);
+            }
+
+            // 5. Ventana Circular del Desván (Atico)
+            using (GraphicsPath winPath = new GraphicsPath())
+            {
+                winPath.AddEllipse(645, 360, 30, 30);
+
+                // Color de cristal con reflejo
+                g.FillPath(Brushes.LightSkyBlue, winPath);
+
+                using (Pen pWin = new Pen(colorMadera, 2))
+                {
+                    g.DrawPath (pWin, winPath);
+
+                    // Marco de la ventana (cruz)
+                    g.DrawLine(pWin, 645, 375, 675, 375);
+                    g.DrawLine(pWin, 660, 360, 660, 390);
+                }
+            }
         }
 
         private void DibujarPetalos(Graphics g)
