@@ -152,7 +152,7 @@ namespace GraphicCode
         {
             this.DoubleBuffered = true;
             this.Size = new Size(1000, 700);
-            this.Text = "Simulación: Cerezos, Clima y Parvadas";
+            this.Text = "Una simple granja";
             InicializarEscena();
 
             mainTimer = new System.Windows.Forms.Timer { Interval = 16 };
@@ -639,19 +639,95 @@ namespace GraphicCode
 
         private void DibujarNubes(Graphics g)
         {
-            Color cN =
-                estaLloviendo
-                    ? Color.FromArgb(160, 75, 75, 90)
-                    : Color.FromArgb(195, Color.White);
+            float h = minutosDia / 60f;
+            Color
+                colorNubePrincipal,
+                colorNubeSombra;
+
+            // --- Lógica de Color Dinámica ---
+            if (estaLloviendo)
+            {
+                colorNubePrincipal = Color.FromArgb(180, 100, 100, 120);
+                colorNubeSombra = Color.FromArgb(200, 60, 60, 80);
+            }
+            else if ((h >= 6 && h <= 8) || (h >= 17 && h <= 19))
+            {
+                // AMANECER / ATARDECER: Tonos naranjas/cálidos
+                colorNubePrincipal = Color.FromArgb(200, 255, 200, 150);
+                colorNubeSombra = Color.FromArgb(180, 255, 100, 50);
+            }
+            else if (h > 19 || h < 6)
+            {
+                // NOCHE: Blancas/Azuladas frías (iluminadas por la luna)
+                colorNubePrincipal = Color.FromArgb(180, 220, 230, 255);
+                colorNubeSombra = Color.FromArgb(150, 40, 50, 90);
+            }
+            else
+            {
+                // DÍA: Blancas puras
+                colorNubePrincipal = Color.FromArgb(220, Color.White);
+                colorNubeSombra = Color.FromArgb(150, 200, 220, 255);
+            }
+
             foreach (var n in nubes)
             {
+                GraphicsState state = g.Save();
                 g.TranslateTransform(n.Posicion.X, n.Posicion.Y);
-                using (SolidBrush b = new SolidBrush(cN))
+                g.ScaleTransform(n.Escala, n.Escala);
+
+                // Dibujo de los cúmulos con volumen
+                DibujarParteNube(g,
+                0,
+                0,
+                40,
+                colorNubePrincipal,
+                colorNubeSombra);
+                DibujarParteNube(g,
+                30,
+                -10,
+                50,
+                colorNubePrincipal,
+                colorNubeSombra);
+                DibujarParteNube(g,
+                65,
+                0,
+                35,
+                colorNubePrincipal,
+                colorNubeSombra);
+                DibujarParteNube(g,
+                35,
+                15,
+                30,
+                colorNubePrincipal,
+                colorNubeSombra);
+
+                g.Restore (state);
+            }
+        }
+
+        private void DibujarParteNube(
+            Graphics g,
+            float x,
+            float y,
+            float radio,
+            Color principal,
+            Color sombra
+        )
+        {
+            using (GraphicsPath path = new GraphicsPath())
+            {
+                path.AddEllipse(x - radio, y - radio, radio * 2, radio * 2);
+
+                using (PathGradientBrush pgb = new PathGradientBrush(path))
                 {
-                    g.FillEllipse(b, 0, 0, 80 * n.Escala, 40 * n.Escala);
-                    g.FillEllipse(b, 25, -15, 50 * n.Escala, 50 * n.Escala);
+                    // El punto de luz lo ponemos arriba a la izquierda para dar volumen
+                    pgb.CenterPoint =
+                        new PointF(x - radio * 0.3f, y - radio * 0.3f);
+                    pgb.CenterColor = principal;
+                    pgb.SurroundColors = new Color[] { sombra };
+
+                    g.FillPath (pgb, path);
                 }
-                g.ResetTransform();
             }
         }
 
