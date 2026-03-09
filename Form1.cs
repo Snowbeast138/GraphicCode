@@ -288,7 +288,7 @@ namespace GraphicCode
                 !EsNoche() &&
                 !estaLloviendo &&
                 parvada.Count == 0 &&
-                rng.Next(1000) > 997
+                rng.Next(1000) > 980
             )
             {
                 float yBase = rng.Next(80, 200);
@@ -790,25 +790,142 @@ namespace GraphicCode
 
         private void DibujarLagoConOndas(Graphics g)
         {
-            using (GraphicsPath p = GetLagoPath())
+            float h = minutosDia / 60f;
+            Color
+                colorCieloTop,
+                colorCieloBottom;
+
+            // 1. Obtener los colores actuales del cielo para el reflejo
+            // Usamos la misma lógica que en DibujarCieloSuave
+            if (estaLloviendo)
             {
-                g.FillPath(Brushes.DodgerBlue, p);
-                g.SetClip (p);
+                colorCieloTop = Color.FromArgb(60, 65, 80);
+                colorCieloBottom = Color.FromArgb(130, 135, 150);
+            }
+            else
+            {
+                if (h < 6)
+                {
+                    colorCieloTop =
+                        InterpolateColor(Color.FromArgb(5, 5, 20),
+                        Color.FromArgb(70, 90, 150),
+                        h / 6f);
+                    colorCieloBottom =
+                        InterpolateColor(Color.FromArgb(20, 20, 60),
+                        Color.FromArgb(255, 160, 60),
+                        h / 6f);
+                }
+                else if (h < 12)
+                {
+                    colorCieloTop =
+                        InterpolateColor(Color.FromArgb(70, 90, 150),
+                        Color.FromArgb(100, 180, 240),
+                        (h - 6) / 6f);
+                    colorCieloBottom =
+                        InterpolateColor(Color.FromArgb(255, 160, 60),
+                        Color.FromArgb(200, 230, 255),
+                        (h - 6) / 6f);
+                }
+                else if (h < 18)
+                {
+                    colorCieloTop =
+                        InterpolateColor(Color.FromArgb(100, 180, 240),
+                        Color.FromArgb(255, 100, 50),
+                        (h - 12) / 6f);
+                    colorCieloBottom =
+                        InterpolateColor(Color.FromArgb(200, 230, 255),
+                        Color.FromArgb(80, 30, 100),
+                        (h - 12) / 6f);
+                }
+                else
+                {
+                    colorCieloTop =
+                        InterpolateColor(Color.FromArgb(255, 100, 50),
+                        Color.FromArgb(5, 5, 20),
+                        (h - 18) / 6f);
+                    colorCieloBottom =
+                        InterpolateColor(Color.FromArgb(80, 30, 100),
+                        Color.FromArgb(20, 20, 60),
+                        (h - 18) / 6f);
+                }
+            }
+
+            // 2. Preparar los colores del reflejo (invertidos y oscurecidos)
+            Color colorReflejoTop = Color.FromArgb(150, colorCieloBottom); // El fondo del cielo es el top del lago
+            Color colorReflejoBottom = Color.FromArgb(100, colorCieloTop); // El top del cielo es el fondo del lago
+
+            using (GraphicsPath pathLago = GetLagoPath())
+            {
+                // 3. Dibujar el AGUA con el REFLEJO DEL CIELO (Degradado)
+                RectangleF rectLago = pathLago.GetBounds();
+                using (
+                    LinearGradientBrush brushReflejo =
+                        new LinearGradientBrush(rectLago,
+                            colorReflejoTop,
+                            colorReflejoBottom,
+                            90f)
+                )
+                {
+                    g.FillPath (brushReflejo, pathLago);
+                }
+
+                // 4. Dibujar las ONDAS DE SUPERFICIE (Distorsión rítmica)
+                g.SetClip (pathLago); // Solo dibujamos ondas dentro del lago
+                using (Pen pOnda = new Pen(Color.FromArgb(40, Color.White), 1))
+                {
+                    // Dibujamos líneas horizontales sutiles que se mueven
+                    float velocidadOnda = faseAnimacion * 2;
+                    for (float y = rectLago.Top; y < rectLago.Bottom; y += 4)
+                    {
+                        // Variación senoidal horizontal y vertical
+                        float offsetX =
+                            (float) Math.Sin(y * 0.1f + velocidadOnda) * 3;
+                        g
+                            .DrawLine(pOnda,
+                            rectLago.Left + offsetX,
+                            y,
+                            rectLago.Right - offsetX,
+                            y);
+                    }
+                }
+                g.ResetClip();
+
+                // 5. Dibujar el BORDE del lago (más natural y rústico)
+                Color colorBorde =
+                    InterpolateColor(Color.FromArgb(100, 80, 60),
+                    Color.Brown,
+                    EsNoche() ? 0.8f : 0.3f);
+                using (Pen pBorde = new Pen(colorBorde, 3))
+                {
+                    pBorde.DashStyle = DashStyle.Dash; // Estilo discontinuo para que parezca tierra/piedras
+                    pBorde.StartCap = LineCap.Round;
+                    pBorde.EndCap = LineCap.Round;
+                    g.DrawPath (pBorde, pathLago);
+                }
+
+                // 6. Dibujar las ONDAS DE IMPACTO (lluvia o pollitos)
+                g.SetClip (pathLago);
                 foreach (var o in ondas)
                 {
+                    // Ajuste dinámico de color de onda (frío en la noche, cálido en el día)
+                    Color colorOndaImpacto =
+                        EsNoche() ? Color.AliceBlue : Color.White;
                     using (
                         Pen pen =
-                            new Pen(Color.FromArgb(o.Opacidad, Color.White), 2)
+                            new Pen(Color
+                                    .FromArgb(o.Opacidad, colorOndaImpacto),
+                                2)
                     )
+                    {
                         g
                             .DrawEllipse(pen,
                             o.Posicion.X - o.Radio,
                             o.Posicion.Y - o.Radio / 2,
                             o.Radio * 2,
                             o.Radio);
+                    }
                 }
                 g.ResetClip();
-                g.DrawPath(Pens.AliceBlue, p);
             }
         }
 
