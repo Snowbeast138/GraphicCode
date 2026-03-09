@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "jhaEAMl4NKA=",
+  "dgSpecHash": "gDYztGiLHWA=",
   "success": true,
-  "projectFilePath": "C:\\Users\\snowb\\OneDrive\\Escritorio\\CETI_ING\\6to\\Graficas\\GraphicCode\\GraphicCode.csproj",
+  "projectFilePath": "C:\\Users\\snowb\\Projects\\GraphicCode\\GraphicCode.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\snowb\\.nuget\\packages\\opentk\\4.9.4\\opentk.4.9.4.nupkg.sha512",
     "C:\\Users\\snowb\\.nuget\\packages\\opentk.audio.openal\\4.9.4\\opentk.audio.openal.4.9.4.nupkg.sha512",

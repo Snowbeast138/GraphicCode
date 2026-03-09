@@ -418,11 +418,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\snowb\\OneDrive\\Escritorio\\CETI_ING\\6to\\Graficas\\GraphicCode\\GraphicCode.csproj",
+      "projectUniqueName": "C:\\Users\\snowb\\Projects\\GraphicCode\\GraphicCode.csproj",
       "projectName": "GraphicCode",
-      "projectPath": "C:\\Users\\snowb\\OneDrive\\Escritorio\\CETI_ING\\6to\\Graficas\\GraphicCode\\GraphicCode.csproj",
+      "projectPath": "C:\\Users\\snowb\\Projects\\GraphicCode\\GraphicCode.csproj",
       "packagesPath": "C:\\Users\\snowb\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\snowb\\OneDrive\\Escritorio\\CETI_ING\\6to\\Graficas\\GraphicCode\\obj\\",
+      "outputPath": "C:\\Users\\snowb\\Projects\\GraphicCode\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\snowb\\AppData\\Roaming\\NuGet\\NuGet.Config"

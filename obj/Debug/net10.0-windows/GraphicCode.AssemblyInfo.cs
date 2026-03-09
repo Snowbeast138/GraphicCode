@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("GraphicCode")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+13d3e40a75ec418b2bfd7ca545841184e5369b7d")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+41f3a9ac75e35d7f5b0e00423210f9282c8f3e13")]
 [assembly: System.Reflection.AssemblyProductAttribute("GraphicCode")]
 [assembly: System.Reflection.AssemblyTitleAttribute("GraphicCode")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
