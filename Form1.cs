@@ -445,63 +445,76 @@ namespace GraphicCode
                 (float)
                 Math.Sin(faseAnimacion * (estaLloviendo ? 2.8f : 1.2f)) *
                 (5 * intensidadViento);
+
+            // Colores estilo ilustración plana
+            Color colorBase = Color.FromArgb(255, 105, 145); // Rosa vibrante
+            Color colorLuz = Color.FromArgb(255, 160, 190); // Rosa pastel
+            Color colorSombra = Color.FromArgb(200, 80, 120); // Rosa profundo
+
             foreach (var a in arboles)
             {
                 g.TranslateTransform(a.Posicion.X, a.Posicion.Y);
                 g.ScaleTransform(a.Escala, a.Escala);
 
-                // Tronco estilizado (curvo como en la imagen)
-                using (GraphicsPath trunk = new GraphicsPath())
+                // 1. Dibujar el Tronco (Curvo y oscuro)
+                using (Pen pTrunk = new Pen(Color.FromArgb(45, 30, 25), 14))
                 {
-                    trunk
-                        .AddBezier(new Point(0, 0),
-                        new Point(-10, -20),
-                        new Point(5, -30),
-                        new Point(0, -45));
-                    using (Pen pTrunk = new Pen(Color.FromArgb(45, 30, 20), 12))
-                    {
-                        pTrunk.StartCap = LineCap.Round;
-                        g.DrawPath (pTrunk, trunk);
-                    }
+                    pTrunk.StartCap = LineCap.Round;
+                    pTrunk.EndCap = LineCap.Round;
+
+                    // Curva principal del tronco
+                    g
+                        .DrawBezier(pTrunk,
+                        new Point(0, 0),
+                        new Point(-15, -30),
+                        new Point(10, -60),
+                        new Point(0, -90));
                 }
 
-                // Ramas internas
-                using (Pen branch = new Pen(Color.FromArgb(35, 25, 15), 3))
-                {
-                    g.DrawLine(branch, 0, -35, -30, -55);
-                    g.DrawLine(branch, 0, -40, 35, -60);
-                }
-
-                // Cúmulos de hojas irregulares
+                // 2. Dibujar los Cúmulos de Hojas (Sakura)
                 foreach (var offset in a.ClusterOffsets)
                 {
                     GraphicsState state = g.Save();
-                    g.TranslateTransform(offset.X, offset.Y);
-                    g.RotateTransform (fV); // Movimiento con viento
+                    g.TranslateTransform(offset.X, offset.Y - 40); // Ajuste de altura
+                    g.RotateTransform (fV);
 
-                    using (GraphicsPath cluster = new GraphicsPath())
-                    {
-                        // Forma tipo "nube" irregular
-                        cluster.AddEllipse(-30, -25, 60, 45);
-                        cluster.AddEllipse(-15, -40, 45, 40);
-                        using (
-                            PathGradientBrush pgb =
-                                new PathGradientBrush(cluster)
-                        )
-                        {
-                            pgb.CenterColor = Color.FromArgb(255, 200, 220); // Rosa claro central
-                            pgb.SurroundColors =
-                                new Color[] {
-                                    estaLloviendo
-                                        ? Color.PaleVioletRed
-                                        : Color.HotPink
-                                };
-                            g.FillPath (pgb, cluster);
-                        }
-                    }
+                    // Creamos una forma de "nube" compuesta por varias elipses superpuestas
+                    DibujarHojaEstilizada (g, colorBase, colorLuz, colorSombra);
+
                     g.Restore (state);
                 }
                 g.ResetTransform();
+            }
+        }
+
+        // Método auxiliar para crear la forma orgánica de la imagen
+        private void DibujarHojaEstilizada(
+            Graphics g,
+            Color baseCol,
+            Color luzCol,
+            Color sombraCol
+        )
+        {
+            // Sombra (atrás y un poco hacia abajo)
+            using (SolidBrush bSombra = new SolidBrush(sombraCol))
+            {
+                g.FillEllipse(bSombra, -35, -20, 70, 50);
+                g.FillEllipse(bSombra, -10, -30, 60, 45);
+            }
+
+            // Base Principal
+            using (SolidBrush bBase = new SolidBrush(baseCol))
+            {
+                g.FillEllipse(bBase, -30, -25, 65, 45);
+                g.FillEllipse(bBase, -5, -35, 55, 40);
+                g.FillEllipse(bBase, -20, -10, 50, 35);
+            }
+
+            // Brillos/Luz (parte superior)
+            using (SolidBrush bLuz = new SolidBrush(luzCol))
+            {
+                g.FillEllipse(bLuz, -20, -32, 40, 20);
+                g.FillEllipse(bLuz, 10, -38, 30, 15);
             }
         }
 
