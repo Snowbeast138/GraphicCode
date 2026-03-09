@@ -107,6 +107,8 @@ namespace GraphicCode
 
         private float faseAnimacion = 0;
 
+        private float animacionPollo = 0;
+
         private Random rng = new Random();
 
         // Clima y Rayos
@@ -227,6 +229,7 @@ namespace GraphicCode
         {
             minutosDia = (minutosDia + velocidadTiempo) % 1440;
             faseAnimacion += 0.05f;
+            animacionPollo += 0.15f;
 
             // --- Lógica de Clima ---
             if (rng.Next(5000) < 5) estaLloviendo = !estaLloviendo;
@@ -783,20 +786,284 @@ namespace GraphicCode
             int
                 x = (int)(this.Width / 2 + 450 * Math.Cos(ang)),
                 y = (int)(450 + 350 * Math.Sin(ang));
+
+            float h = minutosDia / 60f; // Hora actual para el color del sol
+
             if (!EsNoche())
-                g.FillEllipse(Brushes.Yellow, x - 35, y - 35, 70, 70);
+            {
+                // --- Dibujar SOL con Volumen ---
+                int radioSol = 35;
+
+                // Definir colores base y de brillo según la hora (Atardecer vs Día)
+                Color
+                    colorCentro,
+                    colorBorde;
+
+                // Si es cerca del amanecer (6-8am) o atardecer (16-18pm), Sol más naranja
+                if (h < 8 || h > 16)
+                {
+                    colorCentro = Color.FromArgb(255, 255, 200); // Blanco amarillento cálido
+                    colorBorde = Color.FromArgb(255, 140, 0); // Naranja oscuro (DarkOrange)
+                } // Mediodía, Sol amarillo brillante
+                else
+                {
+                    colorCentro = Color.White; // Brillo puro central
+                    colorBorde = Color.FromArgb(255, 215, 0); // Oro (Gold)
+                }
+
+                // Dibujar el círculo con degradado
+                DibujarCirculoDegradado (
+                    g,
+                    x,
+                    y,
+                    radioSol,
+                    colorCentro,
+                    colorBorde
+                );
+
+                // Opcional: Añadir un ligero resplandor (Glow) externo
+                DibujarResplandorExterno(g,
+                x,
+                y,
+                radioSol + 15,
+                Color.FromArgb(100, colorBorde));
+            }
             else
-                g.FillEllipse(Brushes.WhiteSmoke, x - 25, y - 25, 50, 50);
+            {
+                // --- Dibujar LUNA con Volumen ---
+                int radioLuna = 25;
+
+                // Colores para una luna plateada con volumen
+                Color colorCentroLuna = Color.White; // Brillo central
+                Color colorBordeLuna = Color.FromArgb(200, 200, 220); // Gris azulado pálido
+
+                DibujarCirculoDegradado (
+                    g,
+                    x,
+                    y,
+                    radioLuna,
+                    colorCentroLuna,
+                    colorBordeLuna
+                );
+
+                // Opcional: Resplandor frío externo
+                DibujarResplandorExterno(g,
+                x,
+                y,
+                radioLuna + 10,
+                Color.FromArgb(50, Color.LightBlue));
+            }
+        }
+
+        // --- Método para dibujar una esfera con degradado radial (volumen) ---
+        private void DibujarCirculoDegradado(
+            Graphics g,
+            int x,
+            int y,
+            int radio,
+            Color colorCentro,
+            Color colorBorde
+        )
+        {
+            using (GraphicsPath path = new GraphicsPath())
+            {
+                // Definimos la trayectoria circular
+                path.AddEllipse(x - radio, y - radio, radio * 2, radio * 2);
+
+                using (PathGradientBrush pgb = new PathGradientBrush(path))
+                {
+                    // El color en el centro exacto del círculo
+                    pgb.CenterColor = colorCentro;
+
+                    // El color (o colores) en todo el borde de la trayectoria
+                    pgb.SurroundColors = new Color[] { colorBorde };
+
+                    // Opcional: Desplazar el centro del degradado ligeramente para simular
+                    // que la luz viene de un lado (ej. arriba a la izquierda)
+                    // pgb.CenterPoint = new PointF(x - radio/4, y - radio/4);
+                    // Rellenar el círculo con el degradado
+                    g.FillPath (pgb, path);
+                }
+            }
+        }
+
+        // --- Método opcional para un resplandor externo suave (Glow) ---
+        private void DibujarResplandorExterno(
+            Graphics g,
+            int x,
+            int y,
+            int radioGlow,
+            Color colorGlow
+        )
+        {
+            using (GraphicsPath pathGlow = new GraphicsPath())
+            {
+                pathGlow
+                    .AddEllipse(x - radioGlow,
+                    y - radioGlow,
+                    radioGlow * 2,
+                    radioGlow * 2);
+
+                using (
+                    PathGradientBrush pgbGlow = new PathGradientBrush(pathGlow)
+                )
+                {
+                    pgbGlow.CenterColor = colorGlow; // Color en el centro (con opacidad)
+                    pgbGlow.SurroundColors = new Color[] { Color.Transparent }; // Se desvanece a transparente
+
+                    g.FillPath (pgbGlow, pathGlow);
+                }
+            }
         }
 
         private void DibujarPollitosCaminantes(Graphics g)
         {
-            foreach (var p in posPollitos)
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+
+            for (int i = 0; i < posPollitos.Count; i++)
             {
-                float a = (float) Math.Sin(faseAnimacion * 10) * 2;
-                g.FillEllipse(Brushes.Yellow, p.X, p.Y + a, 14, 14);
-                g.FillEllipse(Brushes.Yellow, p.X + 8, p.Y - 4 + a, 9, 9);
+                PointF p = posPollitos[i];
+                PointF target = targetPollitos[i];
+
+                // Ya tienes calculada la dirección aquí:
+                float direccion = (target.X < p.X) ? -1f : 1f;
+
+                float balanceoY = (float) Math.Sin(animacionPollo + i) * 1.5f;
+
+                GraphicsState state = g.Save();
+
+                g.TranslateTransform(p.X, p.Y + balanceoY);
+
+                // IMPORTANTE: Ya no necesitamos ScaleTransform para espejar todo el dibujo
+                // porque ahora el método DibujarPollitoPro maneja la dirección internamente.
+                // g.ScaleTransform(direccion, 1f); // <-- Puedes comentar o borrar esta línea
+                // Pasamos los 3 parámetros: el Graphics, el índice y la dirección
+                DibujarPollitoPro (g, i, direccion);
+
+                g.Restore (state);
             }
+        }
+
+        private void DibujarPollitoPro(Graphics g, int index, float direccion)
+        {
+            // --- Paleta de Colores ---
+            Color colorCuerpo = Color.FromArgb(255, 230, 0);
+            Color colorCuerpoLuz = Color.FromArgb(255, 255, 150);
+            Color colorCuerpoSombra = Color.FromArgb(220, 180, 0);
+            Color colorPicoPatas = Color.FromArgb(255, 120, 0);
+            Color colorPicoSombra = Color.FromArgb(200, 80, 0);
+
+            float offSetAnim = index * 0.5f;
+            float batidoAla =
+                (float) Math.Sin(faseAnimacion * 12 + offSetAnim) * 10f;
+
+            // Movimiento de patas
+            float movPatas = (float) Math.Sin(faseAnimacion * 10 + index);
+            float offsetPataAtras = movPatas * 3;
+            float offsetPataAdelante = -movPatas * 3;
+
+            // 1. DIBUJAR PATAS (Independientes del ScaleTransform del cuerpo)
+            // Usamos 'direccion' para que el dedo siempre apunte hacia donde camina
+            DibujarPataSola(g,
+            new PointF(-3 + offsetPataAtras, 10),
+            colorPicoPatas,
+            direccion);
+            DibujarPataSola(g,
+            new PointF(3 + offsetPataAdelante, 11),
+            colorPicoPatas,
+            direccion);
+
+            // --- APLICAR ROTACIÓN AL CUERPO ---
+            GraphicsState cuerpoState = g.Save();
+            g.ScaleTransform(direccion, 1f); // Esto voltea cuerpo, cabeza, ojo y pico
+
+            // 2. CUERPO
+            using (GraphicsPath pathCuerpo = new GraphicsPath())
+            {
+                pathCuerpo.AddEllipse(-12, -8, 24, 20);
+                using (PathGradientBrush pgb = new PathGradientBrush(pathCuerpo)
+                )
+                {
+                    pgb.CenterColor = colorCuerpoLuz;
+                    pgb.SurroundColors = new Color[] { colorCuerpo };
+                    pgb.CenterPoint = new PointF(2, -2);
+                    g.FillPath (pgb, pathCuerpo);
+                }
+                g
+                    .DrawEllipse(new Pen(colorCuerpoSombra, 0.5f),
+                    -12,
+                    -8,
+                    24,
+                    20);
+            }
+
+            // 3. CABEZA
+            using (GraphicsPath pathCabeza = new GraphicsPath())
+            {
+                pathCabeza.AddEllipse(2, -14, 16, 16);
+                using (PathGradientBrush pgb = new PathGradientBrush(pathCabeza)
+                )
+                {
+                    pgb.CenterColor = Color.White;
+                    pgb.SurroundColors = new Color[] { colorCuerpo };
+                    pgb.CenterPoint = new PointF(10, -10);
+                    g.FillPath (pgb, pathCabeza);
+                }
+                g.DrawEllipse(new Pen(colorCuerpoSombra, 0.5f), 2, -14, 16, 16);
+            }
+
+            // 4. OJO (Ahora se voltea con el cuerpo)
+            g.FillEllipse(Brushes.Black, 11, -10, 4, 5);
+            g.FillEllipse(Brushes.White, 13, -9, 1.5f, 1.5f);
+
+            // 5. PICO (Ahora se voltea con el cuerpo)
+            PointF[] picoPts =
+            { new PointF(16, -7), new PointF(23, -5), new PointF(16, -3) };
+            using (
+                LinearGradientBrush lgb =
+                    new LinearGradientBrush(picoPts[0],
+                        picoPts[1],
+                        colorPicoPatas,
+                        colorPicoSombra)
+            )
+                g.FillPolygon(lgb, picoPts);
+
+            // 6. ALA
+            GraphicsState alaState = g.Save();
+            g.TranslateTransform(-2, -1);
+            g.RotateTransform (batidoAla);
+            g.FillEllipse(new SolidBrush(colorCuerpoLuz), -1, -1, 12, 7);
+            g.DrawEllipse(Pens.DarkGoldenrod, -1, -1, 12, 7);
+            g.Restore (alaState);
+
+            g.Restore (cuerpoState); // Volvemos al estado normal
+        }
+
+        // --- NUEVO: Método auxiliar para dibujar UNA sola pata genérica en una posición ---
+        private void DibujarPataSola(
+            Graphics g,
+            PointF posicion,
+            Color color,
+            float direccion
+        )
+        {
+            GraphicsState state = g.Save();
+            g.TranslateTransform(posicion.X, posicion.Y);
+
+            using (Pen pPata = new Pen(color, 2))
+            {
+                pPata.EndCap = LineCap.Round;
+
+                // Dibujamos la pierna (vertical)
+                g.DrawLine(pPata, 0, 0, 0, 8);
+
+                // Dibujamos el dedo (forma de L).
+                // La dirección X del dedo depende de la dirección del pollito
+                float largoDedo = 4f * direccion; // El dedo apunta adelante
+                g.DrawLine(pPata, 0, 8, largoDedo, 8);
+            }
+
+            g.Restore (state);
         }
 
         private void DibujarLuciernagas(Graphics g)
